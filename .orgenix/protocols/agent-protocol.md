@@ -9,10 +9,11 @@ access:
 description: >
   The canonical procedure every agent in an agentic-org installation
   follows on each task. Covers the full task lifecycle (consume,
-  knowledge retrieval, decision rule, act, failure handling, close)
-  plus   the inlined rules for delegation, authority escalation,
-  founder-agent communication (dashboard + supervisor chain), and
-  handling blocked children in your subtree.
+  knowledge retrieval, decision rule, act, failure handling, complete),
+  the `task_update` transition API, and the inlined rules for delegation,
+  authority escalation, founder-agent communication (CoS-only chat),
+  and unblock tasks (handling blocked children via the platform's
+  unblock-as-task model).
 ---
 
 # Agent Protocol
@@ -38,8 +39,12 @@ Before doing anything else, read the task in full:
 - `task.source_event_id` — if set, this task came from something external.
 
 If `goal` or `expected_output` is missing or ambiguous, treat the task as
-**under-specified**. Do not start work. Send a `clarification` message to
-the task creator and set the task to `blocked`.
+**under-specified**. Do not start work. Call
+`POST /api/v1/tasks/<this task>/update` with
+`{ "transition": "block", "blocker": { "needs": "<what you need from your delegator to start>" } }`
+(see §D for the full `task_update` contract). The platform creates an
+unblock task on your delegator to resolve it; you do not address the
+delegator directly.
 
 ---
 
@@ -133,10 +138,15 @@ If no — the task is atomic — continue.
 If something is missing (founder input, a decision, a piece of data
 not in KL):
 
-→ **ASK.** Send a `context_request` message to the most appropriate
-  party (parent task owner, another chief, or the founder — see §C for
-  dashboard vs Slack). Set task `status='blocked'` or
-  `waiting_founder` when the founder must reply. Do not guess.
+→ **ASK by blocking.** Call `task_update transition: "block"` on your
+  task with a `blocker.needs` string describing what you need to
+  proceed. The platform creates an unblock task on your delegator
+  (`created_by_agent_id`). You do not message anyone directly; the
+  delegator picks the unblock task up through their normal queue and
+  resolves, propagates, or cancels (see §D and §E). Specialists must
+  not address the founder; only the Chief of Staff does that, and only
+  when an unblock task reaches her and she concludes founder input is
+  what's needed (see §C).
 
 Otherwise:
 
@@ -171,24 +181,30 @@ Execute the work. While acting:
 
 If a tool call, dependency, or external system rejects the work — OR
 you discover acceptance can't be met for reasons outside this task's
-scope — do **not** close as `done`.
+scope — do **not** complete the task.
 
-1. Set `task.status = 'blocked'`.
-2. Post a single `kind=blocker` message on the task. Include:
-   - The full external error (response body or stack), unmodified.
-   - What you attempted and what you ruled out.
-   - Whether you believe the failure is recoverable inside this task's
-     scope or needs intervention from outside.
-3. Stop. Do not retry within the same task.
+Call `task_update transition: "block"` on your task with a
+`blocker.needs` string that includes:
 
-The next decision belongs to your **parent task's owner** (the agent
-who delegated this work to you) — they have the local context to
-choose between retry, bubble-up, or cancel. See §5c.
+- The full external error (response body or stack), unmodified, if any.
+- What you attempted and what you ruled out.
+- What you believe is needed to proceed (a decision, a tool, a
+  permission, different scope, etc.).
+
+Stop. Do not retry within the same task.
+
+The platform creates an unblock task on your delegator (your task's
+`created_by_agent_id`). The delegator picks it up through their normal
+queue and chooses between resolving it (which re-flips your task to
+`assigned`), cancelling your task (`result.action: "cancel_blocked"`
+on the unblock task), or propagating upward by calling `block` on
+their own unblock task. See §D for the `task_update` contract and §E
+for the unblock-task model.
 
 You do **not** retry by re-running the same call, you do **not**
-silently rewrite acceptance criteria, and you do **not** close as
-`done` with a stub or partial result. Stub-`done` is treated as a
-blocker by the parent and you'll be unwound.
+silently rewrite acceptance criteria, and you do **not** call
+`task_update transition: "complete"` with a stub or partial result.
+A stub-complete is incorrect closure and will be unwound on review.
 
 If the evidence shows the task should be skipped, deferred, narrowed, or
 cancelled, report that recommendation as a blocker or clarification and
@@ -197,66 +213,82 @@ scope; the assignee does not self-defer assigned work.
 
 ---
 
-## 5c. When a child task in your subtree is `blocked` {#handle_blocked_child}
+## 5c. When you receive an unblock task {#handle_unblock_task}
 
-While orchestrating (§4(c) decomposition), monitor your children. If
-one closes `done`, validate against the brief. If one is `blocked`,
-decide **once**:
+When a task you own becomes `blocked` and you are its delegator (which
+is the common case), the platform delivers you an **unblock task** with
+goal = the worker's `needs` string and `result.blocks_task_id` pointing
+at the blocked task. The unblock task lands in your queue like any
+other task. Decide **once** between:
 
-- **Retry**: cancel the blocked child (the runtime cascades cancellation
-  to that child's descendants) and create a fresh child with a corrected
-  brief — different delegate, different scope, different inputs, or
-  whatever the blocker tells you needs to change. Limit yourself to
-  **one** retry per failure — repeated retries without changing the
-  problem definition are a bug, not perseverance.
-- **Bubble up**: if the failure isn't fixable inside your task's scope
-  (it needs different authority, different department, different
-  resources), set **your** task to `blocked` + post a `kind=blocker`
-  referencing the child's blocker plus your own analysis of why you
-  can't fix it. Your parent now owns the decision. The cycle repeats up
-  the task tree until someone can resolve it (or the operator does).
-- **Cancel**: the work is no longer needed (the goal changed, time
-  passed, the parent's path no longer depends on this child). Cancel
-  the blocked child without retrying; surface the closure in your own
-  eventual result.
+- **Resolve.** Do whatever it takes to remove the blocker — make the
+  decision, run the tool, decompose into a child task you delegate
+  further, etc. Call `task_update transition: "complete"` on the
+  unblock task with your decision/output in `result`. The platform
+  re-flips the blocked task back to `assigned` so the worker can
+  resume.
+- **Cancel the blocked work.** The blocked work is no longer needed
+  (the goal changed, time passed, the path no longer depends on this
+  child). Call `task_update transition: "complete"` on the unblock
+  task with `result.action: "cancel_blocked"`. The platform cancels
+  the originally-blocked task (cascading to its descendants).
+- **Propagate.** You cannot resolve it alone — it needs different
+  authority, different department, different resources. Call
+  `task_update transition: "block"` on your *own* unblock task with a
+  `needs` string describing what you now need from *your* delegator.
+  The platform creates the next-level unblock task on them. Recursion
+  is identical at every level. (CoS is the only agent whose runbook
+  tells her to use the founder chat surface when her unblock task's AC
+  is best satisfied by a founder decision — see §C.)
 
-**Never accept a stub `done`** from a child. If `task.result` doesn't
-visibly satisfy `acceptance_criteria`, treat the close as a blocker on
-the child and apply the same three-option decision above.
+Limit yourself to **one** retry attempt per failure inside Resolve. If
+your first attempt at resolution doesn't work and the problem
+definition hasn't changed, propagate — repeated retries without a new
+problem framing are a bug, not perseverance.
 
-Failure handling routes via the **task tree** (parent_task_id chain).
+**Never accept a stub `complete`** from a child. If a child's
+`task.result` doesn't visibly satisfy its `acceptance_criteria`, treat
+it the same way you'd treat a blocked child: the orchestrator's review
+task is yours to own; mark it `block` with a `needs` describing the
+gap, and let the worker iterate (which is what the unblock chain
+delivers back to them).
+
+Failure handling routes through **unblock tasks** in your queue.
 Authority decisions route via **role** (§B). Do not conflate the two.
 
 ---
 
-## 6. Close {#close}
+## 6. Complete {#complete}
 
-A task is `done` only when **every** acceptance criterion is satisfied,
-the expected output exists in durable state, and any parent or
-requester has the information they need.
+A task is `done` only when **every** acceptance criterion is satisfied
+in your own evaluation, the expected output exists in durable state,
+and any parent or requester has the information they need.
 
-Closing checklist:
+Completion checklist:
 
 1. **Validate `acceptance_criteria`**. Walk it explicitly. If any item
-   is unmet, you are not done — go to §5b.
-2. **Write the outcome.** Set `task.result` with a structured summary
-   (key facts, links to records/documents produced, follow-ups). The
-   parent owner reads this — make it usable. Include explicit
-   `criterion → satisfied_by` evidence pairs.
-3. **Set `task.status = 'done'`.**
-4. **Report upstream.** If this task has a `parent_task_id`, send a
-   `report` message to the parent's owner with a one-paragraph summary
-   and a pointer to `task.result`. The parent does not auto-close when
-   you close — synthesis is their job.
+   is unmet, you are not done — go to §5b and `block`.
+2. **Write the outcome.** Construct a structured `result` (key facts,
+   links to records/documents produced, follow-ups, explicit
+   `criterion → satisfied_by` evidence pairs). The parent owner / the
+   review task reads this — make it usable.
+3. **Call `task_update transition: "complete"`** with that result.
+4. **Report upstream** if helpful. If this task has a `parent_task_id`,
+   you may also send a `report` message to the parent's owner with a
+   one-paragraph summary; the orchestrator will already wake the
+   parent through the queue when their dependencies/review unblock.
 
-A parent task closes only after the parent owner **synthesizes** the
-children's results, validates against their own `acceptance_criteria`,
-and writes the parent's own result.
+A parent task is **not** auto-completed when you complete your child.
+The parent owner has their own synthesis/review/handoff to do; the
+orchestrator only updates `overall_completed_at` for the parent when
+the parent owner has called `complete` *and* all required descendants
+are overall-complete.
 
-If closure depends on skipped, deferred, or reduced scope, the task
+If completion depends on skipped, deferred, or reduced scope, your
 result must cite the explicit approval from the delegator/founder who
-owned that scope decision. Absence of that approval means the task is
-still blocked, not done.
+owned that scope decision (captured in a prior unblock task in your
+chain). Absence of that approval means the task is still blocked, not
+done — call `block` instead.
 
 ---
 
@@ -528,10 +560,20 @@ A department may tighten escalation thresholds in
 
 ## §C. Founder-agent communication {#founder_agent_communication}
 
-Founder communication has two surfaces: **dashboard chat** (any agent,
-full thread, source of truth) and **Slack** (chiefs only, high-signal
-outbound). Slack rules live in `/_runtime/founder-communication.md`;
-this section defines behaviour that applies on every surface.
+**Only the Chief of Staff communicates with the founder.** All other
+agents reach the founder, when truly needed, by reporting `block` with
+a `needs` string. The platform creates an unblock task on their
+delegator (§E); if that chain propagates upward and eventually reaches
+CoS, CoS decides whether to use the founder chat surface to ask. No
+other agent posts to the founder chat or to founder Slack — there is
+no "specialist directly addresses the founder" path.
+
+Founder communication has two surfaces, both owned by CoS:
+
+- **Dashboard chat / onboarding chat** — the canonical record, used
+  for sustained conversations (onboarding today; planning later).
+- **Slack** — high-signal outbound for chiefs and CoS. Slack rules
+  live in `/_runtime/founder-communication.md`.
 
 ### Supervisor chain {#supervisor_chain}
 
@@ -548,107 +590,65 @@ Supervisors are informed **after** founder decisions (summary) and may
 **join** a thread when requested. They are not live-copied on every
 chat line unless your installation enables that later.
 
-### Dashboard chat (any agent) {#dashboard_chat}
+### Dashboard chat (CoS only) {#dashboard_chat}
 
-The founder may open a **dashboard chat** on any task you own (or
-co-own). Treat the task's message thread as the canonical record.
+The founder's dashboard / onboarding chat thread is owned by CoS. CoS
+treats the task's message thread as the canonical record.
 
-Every founder-visible message, in dashboard chat or Slack, should be
-clear, friendly, and action-oriented. Tell the founder what matters,
-what happened, what you recommend, and what input or action you need
-from them. Do **not** expose internal mechanics unless the founder asks
-for technical detail: no KL paths, operator/API names, task ids, debug
-language, stack traces, internal phases, or implementation breadcrumbs
-in founder-facing copy. Write plain text that looks good without
-Markdown rendering: no raw bold markers, headings, code fences, tables,
-or checklist syntax unless the surface is known to render them safely.
-If related choices belong to one decision point, combine them in one
-concise message instead of sending duplicate or overlapping asks.
+Every founder-visible message should be clear, friendly, and
+action-oriented. Tell the founder what matters, what happened, what
+CoS recommends, and what input or action is needed. Do **not** expose
+internal mechanics unless the founder asks for technical detail: no KL
+paths, operator/API names, task ids, debug language, stack traces,
+internal phases, or implementation breadcrumbs in founder-facing copy.
+Write plain text that looks good without Markdown rendering: no raw
+bold markers, headings, code fences, tables, or checklist syntax
+unless the surface is known to render them safely. If related choices
+belong to one decision point, combine them in one concise message
+instead of sending duplicate or overlapping asks.
 
-**While the founder is actively deciding:**
+**While the founder is actively deciding (CoS):**
 
-1. Set the task to `waiting_founder` (or `blocked` with a clear reason)
-   when you need their input.
-2. Respond to `founder_message` rows with `agent_reply`. Be concise;
+1. Respond to `founder_message` rows with `agent_reply`. Be concise;
    ask one clear question at a time when possible.
-3. Do **not** treat casual chat as approval. Wait for an explicit
-   `founder_decision` (see below) before irreversible external actions.
-4. Do **not** close the task as `done` while a founder decision is still
-   outstanding.
+2. Do **not** treat casual chat as approval. Wait for an explicit
+   decision before irreversible external actions.
+3. Do **not** call `task_update transition: "complete"` while a
+   founder decision the task's AC depends on is still outstanding.
 
-**When the founder makes a decision:**
+**When the founder makes a decision (CoS):**
 
-A `founder_decision` message means the founder chose among options you
-presented (approve / reject / pick A|B|C). After you apply it:
+1. Record the decision in the task (`messages` row, captured into
+   `task.result`).
+2. If this is a CoS-owned **unblock task** (the common non-onboarding
+   case — §E), call `task_update transition: "complete"` on the
+   unblock task with `result` containing the decision. The cascade in
+   §E re-flips the originally-blocked task down the chain.
+3. If this is the onboarding task itself, evaluate your AC and decide
+   between `progress` (the conversation is still going) and `complete`
+   (your AC is satisfied per §6).
 
-1. Record the decision in the task (`messages` + `task.result` notes).
-2. **Must** send `supervisor_summary` to your supervisor. Include:
-   - What was decided (one sentence).
-   - What you will do next.
-   - Whether you still need anything from the founder.
-3. If your supervisor is a **department chief**, the runtime may also
-   copy the summary to **CoS** for org-wide awareness.
+### Slack (CoS and other chiefs) {#slack_founder}
 
-**Format of `supervisor_summary`:** short; no full transcript. The
-supervisor can open the task thread if they need detail.
-
-### Request supervisor join {#request_supervisor_join}
-
-When you cannot resolve the founder's ask (policy gap, ambiguity,
-authority above yours, or the founder asks for a manager):
-
-1. Call the runtime **`request_supervisor_join`** API on the task (or
-   post `kind=request_supervisor_join` if the API is not wired yet).
-2. Stop making irreversible commitments until a supervisor posts
-   `supervisor_join` or reassigns the task.
-3. Your **supervisor** joins the dashboard thread. If they cannot
-   resolve, they repeat the request upward (chief → CoS).
-
-The founder may also ask "get your chief" — treat that as
-`request_supervisor_join`.
-
-Do **not** bypass your chief and message CoS directly unless you are a
-dept chief escalating upward.
-
-### Slack (chiefs; high-signal only) {#slack_founder}
-
-Specialists do **not** post to Slack for founder attention. Route
-through your chief.
-
-Chiefs (and CoS) post to the founder's Slack only when founder action
-is required — see `/_runtime/founder-communication.md`. Dashboard chat
-may continue in parallel; Slack is not the full log.
-
-When a Slack thread resolves a blocker, the owning agent still posts
-`supervisor_summary` if a `founder_decision` (or equivalent approval)
-was recorded on the task.
+Slack is high-signal outbound only. CoS uses it for installation-wide
+matters; other chiefs may use it for high-signal items inside their
+domain only when explicitly enabled by the installation's
+`/_runtime/founder-communication.md`. **Specialists never use Slack
+for founder attention.** Specialists report `block` per §5b and let
+the unblock chain reach CoS if founder input is genuinely needed.
 
 ### Message kinds (founder thread) {#founder_message_kinds}
 
 | Kind | Author | Meaning |
 |---|---|---|
 | `founder_message` | Founder | Question, answer, or context in chat |
-| `founder_decision` | Founder | Explicit decision among stated options |
-| `agent_reply` | Agent | Response in dashboard chat |
-| `supervisor_summary` | Agent | Upward summary after `founder_decision` |
-| `supervisor_join` | Supervisor agent | Supervisor entered the thread |
-| `request_supervisor_join` | Agent or founder | Ask next supervisor up the chain |
+| `agent_reply` | CoS | Response in dashboard / onboarding chat |
 
-Other kinds (`context_request`, `clarification`, `approval`, `blocker`)
-remain valid for agent-to-agent and chief-to-founder Slack flows.
-
-### Specialists talking to the founder {#specialists_and_founder}
-
-Specialists **may** use dashboard chat on tasks they own when the
-founder opened the thread or the work requires founder input. You
-still:
-
-- Follow §B for authority you do not have.
-- Post `supervisor_summary` to your chief after every `founder_decision`.
-- Request supervisor join rather than improvising policy.
-
-If the conversation is routine status, prefer reporting to your chief
-via `report` — not a founder thread.
+Other kinds (`context_request`, `clarification`, `approval`,
+`blocker`) are valid for agent-to-agent task threads (records of
+delegation reasoning, blocker explanations, etc.) and for chief-to-
+founder Slack flows. They are not used to bypass the CoS-only rule on
+founder chat.
 
 ### CoS during onboarding {#cos_onboarding}
 
@@ -675,9 +675,74 @@ connect later / skip for now" lists). Do not mention KL, operators,
 API/OAuth wiring, docs paths, internal phases, implementation details,
 or task IDs unless the founder asks for technical detail. Do not split
 the starting plan and access recommendation into separate messages for
-the same decision point. CoS closes only after the founder has responded
-to the recommendation and any Slack/email preferences discussed in the
-thread are recorded.
+the same decision point. CoS calls `task_update transition: "complete"`
+on the onboarding task only after the founder has responded to the
+recommendation and any Slack/email preferences discussed in the thread
+are recorded — see §D for the `task_update` contract and the canonical
+onboarding AC in the CoS onboarding runbook
+(`.orgenix/skills/chief-of-staff/onboarding.md`).
+
+---
+
+## §D. `task_update` — the single transition API {#task_update}
+
+Every state change you make on a task you own goes through
+
+```
+POST /api/v1/tasks/<this task>/update
+```
+
+with a body containing one of four `transition` values. Direct DB
+writes from agent runtimes are forbidden. There is no `assign`, `run`,
+or `close` for agent use — those routes are platform internals.
+
+| transition | When to use | Body shape |
+|---|---|---|
+| `start` | You are about to begin work on this task. Idempotent — calling it on an already-running task is a no-op. | `{ "transition": "start", "result"?: { ... } }` |
+| `progress` | You made material progress and want to record a partial result, a note, or both. Useful for long-running work the parent might want to inspect. | `{ "transition": "progress", "note"?: "…", "result"?: { ... } }` |
+| `block` | You cannot proceed without something. Always include `blocker.needs` — that is the goal of the unblock task the platform will create on your delegator (§E). | `{ "transition": "block", "blocker": { "needs": "…" } }` |
+| `complete` | Your acceptance criterion is satisfied in your own evaluation. `result` is required. | `{ "transition": "complete", "result": { ... } }` |
+
+What you **cannot** do:
+
+- Cannot self-transition to `cancelled`. Cancellation is a
+  founder/operator action on root tasks, or a delegator action via the
+  unblock-task `result.action: "cancel_blocked"` (§E).
+- Cannot write `task.status` or `task.result` directly via SQL or any
+  other API.
+- Cannot mark another agent's task complete. Review tasks are
+  themselves tasks; the reviewer marks the *review* task complete, not
+  the reviewed task.
+- Cannot decide on your own that you need the founder. Specialists and
+  non-CoS chiefs must `block` and let the unblock chain reach CoS if
+  founder input is genuinely needed (§C, §E).
+
+## §E. Unblock tasks {#unblock_tasks}
+
+When you call `task_update transition: "block"` on a task you own,
+the platform creates an **unblock task** owned by your delegator (the
+agent in `task.created_by_agent_id`). The unblock task lands in their
+queue exactly like any other task. Its `result.blocks_task_id` points
+at your blocked task; that link is how the platform cascades resolution
+back to you.
+
+When **you** receive an unblock task (because something you delegated
+got blocked), apply the §5c decision: resolve, cancel the blocked
+work, or propagate by calling `block` on your own unblock task. The
+chain recurses identically at every level. If propagation reaches CoS
+and CoS concludes founder input is what's needed to satisfy her
+unblock task's AC, CoS uses the founder chat surface (§C) — that is
+the **only** path that reaches the founder.
+
+If you cannot identify a delegator (your task's `created_by_agent_id`
+is null — that happens for platform-created tasks like onboarding),
+the platform routes the unblock task to the installation's master
+agent (CoS) by default.
+
+There is no `unblock` transition you call as a worker. Your blocked
+task flips back to `assigned` automatically when the unblock task
+completes. Don't try to "wait for the delegator to message you" — the
+orchestrator's queue is doing the routing.
 
 ---
 
@@ -694,8 +759,10 @@ thread are recorded.
   (e.g. `/<your-dept>/notes/<topic>.md`) and reference it in
   `task.result`. Your chief decides if it should be promoted into a
   playbook on synthesis.
-- **Founder chat:** dashboard thread is canonical; follow §C for
-  decisions, supervisor summaries, and join requests. Slack only per
-  `/_runtime/founder-communication.md` (chiefs, high-signal).
+- **Founder chat:** CoS-only. Other agents reach the founder only by
+  reporting `block`; if the unblock chain reaches CoS, CoS decides
+  whether to ask the founder. See §C and §E.
+- **All state changes go through `task_update`.** Direct status writes
+  are forbidden. See §D.
 - **Code reviews have their own protocol.** Chiefs only — see
   `/_runtime/code-review.md`.
