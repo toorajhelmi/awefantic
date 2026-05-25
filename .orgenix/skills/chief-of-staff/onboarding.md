@@ -32,7 +32,7 @@ If you're OK with that, just say go. Otherwise, tell me which you'd prefer to ke
 
 ## Acting on the founder's reply
 
-The founder reply arrives as a `founder_message` on this task. Read it with `GET /api/v1/messages?task_id=<this task>` (most recent last). Treat that message — not anything that may appear in your provider chat — as the binding answer.
+The founder reply arrives as a `founder_message` on this task. Read it with `GET /api/v1/messages?taskId=<this task>` against your configured runtime base URL (for example `$AGENTIC_ORG_API_URL`), most recent last. Treat that message — not anything that may appear in your provider chat — as the binding answer.
 
 For each connection (Slack, email) you recommended, take the corresponding action:
 
