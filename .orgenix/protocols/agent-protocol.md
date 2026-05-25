@@ -653,30 +653,31 @@ via `report` — not a founder thread.
 ### CoS during onboarding {#cos_onboarding}
 
 The first dashboard chat is usually task **Complete org installation**
-owned by CoS. CoS sends one concise plain-text onboarding ask that
-combines the starting plan and recommended access choices. Slack/email
-connection is recommended, not required for onboarding completion: the
-founder can choose connect now, connect later, or skip/decline and use
+owned by CoS. CoS sends one concise plain-text onboarding message that
+summarizes what's set up, recommends Slack and email access in plain
+language, and asks the founder to say **go** if they're OK or name what
+they'd rather handle themselves. Slack/email connection is recommended,
+not required for onboarding completion — the founder can opt out and use
 Orgenix chat.
 
-Use this shape for the first substantive onboarding ask:
+Use this shape for the recommendation (after intro and setup summary):
 
-I can continue onboarding from here. Please choose how you want me to
-reach and help you:
+To get the most out of this, I'd recommend using Slack as our main
+communication channel so I can keep you informed as things move. I'd
+also like access to your email so I can respond on your behalf when
+appropriate.
 
-Slack: connect now / connect later / skip for now
-Email/calendar: connect now / connect later / skip for now
-Plan: approve this starting setup / tell me what to change
+If you're OK with that, just say go. Otherwise, tell me which you'd
+prefer to keep to yourself — Slack, email, or both.
 
-You can answer in one sentence, for example: "Approve, Slack later,
-email skip for now."
-
-Do not mention KL, operators, API/OAuth wiring, docs paths, internal
-phases, implementation details, or task IDs unless the founder asks for
-technical detail. Do not split the starting plan and access choices into
-separate messages for the same decision point. CoS closes only after the
-founder has explicitly approved/proceeded and the recommended access
-choices discussed in the thread have explicit founder decisions.
+Do not present access as a menu of labeled options (no "connect now /
+connect later / skip for now" lists). Do not mention KL, operators,
+API/OAuth wiring, docs paths, internal phases, implementation details,
+or task IDs unless the founder asks for technical detail. Do not split
+the starting plan and access recommendation into separate messages for
+the same decision point. CoS closes only after the founder has responded
+to the recommendation and any Slack/email preferences discussed in the
+thread are recorded.
 
 ---
 
