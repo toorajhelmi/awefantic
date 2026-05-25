@@ -87,8 +87,11 @@ The platform posts `message` verbatim as an `agent_reply` on that task. It does 
 
 How to get the install URL:
 
-- **First call for this capability on this task:** call `request_install` with a placeholder URL pattern (`<browser_public_url>/api/connectors/<capability_id>/install`) and inspect the `install_url` field in the response. If your first message went out with a wrong URL, retry with the corrected one in `message`. The platform also returns `install_url` even when validation rejects the call, so a single retry round-trip is enough.
-- **Subsequent calls (retry/resume):** the install URL is stable per `(installation, capability)`. Reuse the `install_url` you got from the first response; do not invent or paraphrase it.
+- `GET /api/v1/capabilities` returns an absolute `install_url` for every capability (installed or not). Read it from there before composing your message.
+- The same absolute `install_url` is also included in the HTTP 409 response when you try to call a tool on an uninstalled capability.
+- The install URL is stable per `(installation, capability)`. Reuse it across retries; do not invent or paraphrase it.
+
+Never call `request_install` with a placeholder, draft, or "I'll retry with the real URL" message. Each call posts an agent_reply the founder sees. Compose the final founder-facing message on the first call.
 
 After the founder completes the OAuth flow, the platform wakes you again with new task work in the normal way. Your next `GET /api/v1/capabilities` will show the capability as `installed: true`.
 
