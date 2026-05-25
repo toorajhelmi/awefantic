@@ -607,6 +607,27 @@ unless the surface is known to render them safely. If related choices
 belong to one decision point, combine them in one concise message
 instead of sending duplicate or overlapping asks.
 
+**Links and clickable references.** Founder chat auto-linkifies bare
+`http(s)://…` URLs, but a bare URL is bad copy. Treat URLs the way a
+well-written email would:
+
+- Lead with a concrete action verb on the same line as the URL, so
+  the rendered link has obvious meaning. Examples: `Click here to
+  install Slack: https://…`, `Open the draft brief: https://…`.
+- Never write "this link", "the URL above", "click this", or anything
+  else that forces the founder to infer purpose from context.
+- Tell the founder what to do after they click, in one short
+  sentence (e.g. "When you finish, come back here and I'll continue").
+- Use the exact URL the tool or platform returned. Do not invent,
+  paraphrase, or "clean up" URLs.
+- Do not wrap URLs in Markdown link syntax (`[text](url)`) — the chat
+  surface renders it literally.
+
+When you surface a URL the platform gave you (for example, the install
+URL returned by a `capabilities/{X}/request_install` call), paste it
+verbatim with the framing above; do not summarise it as "I sent you a
+link" without including the actual clickable URL in the same message.
+
 **While the founder is actively deciding (CoS):**
 
 1. Respond to `founder_message` rows with `agent_reply`. Be concise;
