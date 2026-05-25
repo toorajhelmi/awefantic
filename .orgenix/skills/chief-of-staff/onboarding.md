@@ -30,4 +30,17 @@ If you're OK with that, just say go. Otherwise, tell me which you'd prefer to ke
 - Keep the onboarding task open until the founder has responded to your recommendation and you have recorded what they want for Slack and email.
 - Record the founder's decisions in messages before closing the task.
 
-See also: `runbooks/04-founder-communication.md` for channel policy and other templates.
+## Acting on the founder's reply
+
+The founder reply arrives as a `founder_message` on this task. Read it with `GET /api/v1/messages?task_id=<this task>` (most recent last). Treat that message — not anything that may appear in your provider chat — as the binding answer.
+
+For each connection (Slack, email) you recommended, take the corresponding action:
+
+- **Founder approved this connection.** Use the capability protocol to ask the platform for it: `POST /api/v1/capabilities/{slack|email}/request_install` with `{ "task_id": "<this task>", "reason": "Quick line explaining why" }`. The platform posts the install link as a normal `agent_reply` on this thread for the founder to click. Do not paste or invent install URLs yourself.
+- **Founder opted out.** Acknowledge the choice in a short `agent_reply`, record it as their decision, and continue without that capability.
+
+After the founder clicks the install link, the platform wakes you again with new work on this task. Confirm by calling `GET /api/v1/capabilities` and re-issue any tool call that returned `capability_not_installed`. The relevant capability tools (for example `connector:slack/slack.dm_founder`) become available immediately.
+
+Only close the onboarding task when every recommended connection has either been installed or explicitly declined and recorded in this thread.
+
+See also: `.orgenix/protocols/capabilities.md` for the capability discovery + install mechanics, and `runbooks/04-founder-communication.md` for channel policy and other templates.
