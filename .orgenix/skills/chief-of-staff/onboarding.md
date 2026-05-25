@@ -1,6 +1,14 @@
 # Chief of Staff onboarding
 
-Use when the current task is org installation (for example, "Complete org installation").
+Use when the current task is **Complete org installation** (the onboarding task the platform created for you when this installation was provisioned).
+
+## Your acceptance criteria
+
+The platform sets a single acceptance criterion on your onboarding task:
+
+> Either the founder has declined to set up Slack and email, or any of those they want is fully installed and reachable from this installation.
+
+You evaluate the criterion against your own context. Do not call `task_update transition: "complete"` until that statement is true in your honest reading of this thread.
 
 ## First founder message
 
@@ -27,8 +35,7 @@ If you're OK with that, just say go. Otherwise, tell me which you'd prefer to ke
 - Treat "go", "yes", "sounds good", and similar short replies as approval of the recommended setup unless the founder also names something to skip or handle themselves.
 - If the founder opts out of Slack, email, or both, record that and continue in Orgenix chat — connection is recommended, not required.
 - Do not post internal hold/blocker status to the founder (for example, "blocked on founder onboarding" or "cannot close installation until"). Acknowledge their reply normally and continue the conversation.
-- Keep the onboarding task open until the founder has responded to your recommendation and you have recorded what they want for Slack and email.
-- Record the founder's decisions in messages before closing the task.
+- Record the founder's decisions in messages before reporting your task complete.
 
 ## Acting on the founder's reply
 
@@ -41,6 +48,19 @@ For each connection (Slack, email) you recommended, take the corresponding actio
 
 After the founder clicks the install link, the platform wakes you again with new work on this task. Confirm by calling `GET /api/v1/capabilities` and re-issue any tool call that returned `capability_not_installed`. The relevant capability tools (for example `connector:slack/slack.dm_founder`) become available immediately.
 
-Only close the onboarding task when every recommended connection has either been installed or explicitly declined and recorded in this thread.
+## Reporting task progress
 
-See also: `.orgenix/protocols/capabilities.md` for the capability discovery + install mechanics, and `runbooks/04-founder-communication.md` for channel policy and other templates.
+Use **`POST /api/v1/tasks/<this task>/update`** for every state transition on this task. It is the single API for moving a task through its lifecycle.
+
+| When | Transition | Body |
+|---|---|---|
+| You start working on this task | `start` | `{ "transition": "start" }` |
+| You make material progress and want to record a note or partial result | `progress` | `{ "transition": "progress", "note": "…", "result": { ... }? }` |
+| You cannot proceed without something | `block` | `{ "transition": "block", "blocker": { "needs": "Plain text describing what you need to move forward." } }` |
+| Your AC (above) is satisfied in your own evaluation | `complete` | `{ "transition": "complete", "result": { "summary": "…", "slack": "approved\|declined\|installed", "email": "approved\|declined\|installed" } }` |
+
+You may only call `complete` when your acceptance criterion is satisfied in your honest evaluation of this thread. If you call `complete` while the founder still has open access decisions, the platform will accept the call structurally but you will have closed the task incorrectly — that is a self-inflicted error, not a platform check to lean on.
+
+If you are not sure whether the founder has answered, call `progress` with a note describing your reasoning and keep the conversation going.
+
+See also: `.orgenix/protocols/agent-protocol.md` (the `task_update` contract), `.orgenix/protocols/capabilities.md` for the capability discovery + install mechanics, and `runbooks/04-founder-communication.md` for channel policy and other templates.
