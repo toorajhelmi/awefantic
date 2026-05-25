@@ -79,13 +79,20 @@ Content-Type: application/json
 
 {
   "task_id": "<the task you are working on>",
-  "reason": "Short, plain-language explanation the founder will read"
+  "message": "<the exact founder-facing agent_reply you want posted on this task — must include the install URL>"
 }
 ```
 
-The platform posts an `agent_reply` on that task containing your reason and a link the founder can click to start the install (`install_url`). After the founder completes the OAuth flow, the platform wakes you again with new task work in the normal way. Your next `GET /api/v1/capabilities` will show the capability as `installed: true`.
+The platform posts `message` verbatim as an `agent_reply` on that task. It does not edit, prefix, or append anything to your text. Compose the message yourself following §C of `agent-protocol.md` (link/URL hygiene): a clear action verb on the same line as the URL, and a short "what to do after you click" sentence.
 
-Do not invent install URLs or restate OAuth mechanics in your own messages. Use `request_install` and let the platform render the link.
+How to get the install URL:
+
+- **First call for this capability on this task:** call `request_install` with a placeholder URL pattern (`<browser_public_url>/api/connectors/<capability_id>/install`) and inspect the `install_url` field in the response. If your first message went out with a wrong URL, retry with the corrected one in `message`. The platform also returns `install_url` even when validation rejects the call, so a single retry round-trip is enough.
+- **Subsequent calls (retry/resume):** the install URL is stable per `(installation, capability)`. Reuse the `install_url` you got from the first response; do not invent or paraphrase it.
+
+After the founder completes the OAuth flow, the platform wakes you again with new task work in the normal way. Your next `GET /api/v1/capabilities` will show the capability as `installed: true`.
+
+Do not call `request_install` more than once for the same capability on the same task while the previous request is still outstanding — the founder will see duplicate bubbles. If you suspect your message didn't land, read the task's messages with `GET /api/v1/messages?task_id=...` first.
 
 ## Behavior rules
 
