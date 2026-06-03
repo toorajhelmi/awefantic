@@ -17,6 +17,8 @@ Use after Slack/email access has settled on **Complete org installation**. The d
 
 ### Opening message (first discovery turn)
 
+Run `.orgenix/scripts/post-discovery-opener.sh` (or post the same copy via `POST /api/v1/messages`). If `/api/v1/me` returns `exp` claim failure, stop and escalate token refresh — do not mark discovery finished.
+
 One short message that acknowledges connections are done, asks lifecycle in one line, mentions the optional planning pass, and signals you will recommend which teams to turn on after they answer.
 
 ### After the founder replies
