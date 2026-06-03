@@ -63,4 +63,12 @@ You may only call `complete` when your acceptance criterion is satisfied in your
 
 If you are not sure whether the founder has answered, call `progress` with a note describing your reasoning and keep the conversation going.
 
+## After access settles: run discovery
+
+When Slack/email choices are done but the dashboard still shows **Finish onboarding**, resume discovery on the same **Complete org installation** task. Follow `runbooks/06-operating-posture.md`:
+
+- Post **one** short `agent_reply` that picks up after setup (no intro repeat).
+- Run a conversational discovery: lifecycle stage, optional one-time planning offer, then recommend/confirm department activation.
+- Call `POST /api/v1/onboarding/discovery/complete` with `{ "task_id": "<this task>", "departments": [...] }` **only when** the conversation has concluded; use dept slugs and omit `administration`.
+
 See also: `.orgenix/protocols/agent-protocol.md` (the `task_update` contract), `.orgenix/protocols/capabilities.md` for the capability discovery + install mechanics, and `runbooks/04-founder-communication.md` for channel policy and other templates.
