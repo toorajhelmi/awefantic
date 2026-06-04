@@ -13,8 +13,17 @@ fi
 
 ME=$(curl -sS -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/me")
 if echo "$ME" | grep -q '"error"'; then
-  echo "error: agent token rejected: $ME" >&2
-  exit 1
+  REFRESH=$(curl -sS -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}' "$API_URL/api/v1/auth/agent-token")
+  TOKEN=$(echo "$REFRESH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('token',''))" 2>/dev/null || true)
+  if [[ -z "$TOKEN" ]]; then
+    echo "error: agent token rejected and refresh failed: $ME" >&2
+    exit 1
+  fi
+  ME=$(curl -sS -H "Authorization: Bearer $TOKEN" "$API_URL/api/v1/me")
+  if echo "$ME" | grep -q '"error"'; then
+    echo "error: agent token still rejected after refresh: $ME" >&2
+    exit 1
+  fi
 fi
 
 BODY=$(cat <<'EOF'
