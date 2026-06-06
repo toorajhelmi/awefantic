@@ -23,7 +23,7 @@ One short message that acknowledges connections are done, asks lifecycle in one 
 
 ### After the founder replies
 
-- If they answer lifecycle: recommend departments in plain language (engineering/product work, growth/marketing, support, finance — only what fits their stage). Confirm or adjust based on their reaction.
+- If they answer lifecycle: recommend departments in plain language (tech/product work, growth/marketing, support, finance — only what fits their stage). Confirm or adjust based on their reaction. When calling `discovery/complete`, use installation slugs (often `tech`, not `engineering`).
 - If they skip planning: respect it; still confirm department activation choices.
 - When the conversation has **actually concluded** (explicit agreement on active departments, or clear "just CoS for now"):
 
@@ -32,9 +32,9 @@ curl -sX POST -H "Authorization: Bearer $AGENTIC_ORG_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "<canonical onboarding task id>",
-    "departments": ["engineering", "growth"]
+    "departments": ["tech", "growth"]
   }' \
   $AGENTIC_ORG_API_URL/api/v1/onboarding/discovery/complete
 ```
 
-Use department **slugs** only (e.g. `engineering`, `growth`, `support`, `finance`). Omit `administration`. Do not call `discovery/complete` until the thread reflects a concluded agreement.
+Use department **slugs** only (e.g. `tech`, `growth`, `support`, `finance`). Omit `administration`. Read `available_department_slugs` from the `discovery/complete` response if a slug is rejected. Do not call `discovery/complete` until the thread reflects a concluded agreement.
