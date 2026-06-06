@@ -1,6 +1,6 @@
 # Capabilities and connector tools
 
-This protocol explains how durable agents discover and use integrations such as Slack, email, GitHub, and any future capability the platform supports.
+This protocol explains how durable agents discover and use integrations such as Slack, Gmail, GitHub, and any future capability the platform supports.
 
 Capabilities are **named integrations** the platform makes available to a practice. Each capability is implemented by a *connector* the platform host has registered (one connector per capability). A practice declares which capabilities it expects to use in its `capabilities.json`; the platform exposes them to the agent through the runtime API.
 
@@ -27,11 +27,11 @@ Response shape (illustrative):
       "tools": ["slack.dm_founder", "slack.list_recent_dm_messages"]
     },
     {
-      "id": "email",
-      "name": "Email",
-      "description": "Read and send the founder's email when they approve.",
+      "id": "gmail",
+      "name": "Gmail",
+      "description": "Read recent founder Gmail and send founder-approved replies.",
       "installed": false,
-      "tools": ["email.send", "email.list_recent"]
+      "tools": ["gmail.send", "gmail.list_recent", "gmail.get_message"]
     }
   ]
 }
@@ -54,6 +54,23 @@ POST /api/v1/tools/connector:slack/slack.dm_founder
 Content-Type: application/json
 
 { "text": "Quick update: ..." }
+```
+
+Gmail examples:
+
+```
+GET /api/v1/tools/connector:gmail/gmail.list_recent?limit=10
+```
+
+```
+GET /api/v1/tools/connector:gmail/gmail.get_message?id=<gmail-message-id>
+```
+
+```
+POST /api/v1/tools/connector:gmail/gmail.send
+Content-Type: application/json
+
+{ "to": "founder@example.com", "subject": "Follow-up", "body_text": "..." }
 ```
 
 If the capability is not installed, the dispatcher responds with HTTP 409 and:
