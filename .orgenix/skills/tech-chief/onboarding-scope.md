@@ -1,0 +1,1 @@
+I own the technical setup for building, shipping, and running your product. I will use the repo you already connected, then guide only the access we need for hosting, database work, domains, and secrets so Tech can ship without turning setup into a questionnaire.
