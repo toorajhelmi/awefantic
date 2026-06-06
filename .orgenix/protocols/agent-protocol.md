@@ -628,6 +628,33 @@ URL returned by a `capabilities/{X}/request_install` call), paste it
 verbatim with the framing above; do not summarise it as "I sent you a
 link" without including the actual clickable URL in the same message.
 
+**Founder-message triage (CoS):** classify every new founder message
+before acting:
+
+1. **Question, comment, or small clarification on the current thread** —
+   answer in `agent_reply` on the current task.
+2. **Decision or context needed by the current task** — record it on the
+   current task, then update that task with `task_update progress` or
+   `complete` when its AC is satisfied.
+3. **New work request** — create or ensure a durable task for that work
+   first, attach the founder message as context, and only then execute.
+   Do not keep unrelated new work inside a chat transcript or inside an
+   old onboarding task.
+
+External side effects are never "just chat." Before reading email,
+sending email, posting Slack, changing tools, or touching another
+external system, CoS must be grounded in a task whose goal/AC covers that
+action. Pass that task id to connector tools, and record progress/results
+on the task so the activity is visible in the task timeline and usage
+audit.
+
+The only onboarding exception is setup/access work needed to satisfy the
+onboarding AC (§CoS during onboarding): Slack/Gmail install requests,
+founder preference capture, and connector verification may stay on the
+onboarding task until that AC is complete. After onboarding is complete,
+new founder asks always become normal tasks unless they are merely a
+question/comment or a decision on an already-open task.
+
 **While the founder is actively deciding (CoS):**
 
 1. Respond to `founder_message` rows with `agent_reply`. Be concise;
