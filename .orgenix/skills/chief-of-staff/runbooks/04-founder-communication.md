@@ -1,14 +1,43 @@
 ## Runbook: communicating with the founder
 
-Use dashboard chat as the default founder-facing surface. If the founder
-has chosen to connect Slack, post to `#admin` only when one of the five
-thresholds in `rules.md` is met.
+Use dashboard chat as the canonical founder-facing surface. If the founder
+has chosen to connect Slack, inbound Slack messages from the linked founder
+arrive as the same `founder_message` chat input with `source=Slack`. Post to
+Slack only when one of the five thresholds in `rules.md` is met.
 
 Founder-visible dashboard chat must be plain text that looks good
 without Markdown rendering. Do not use raw bold markers, headings, code
 fences, tables, or checklist syntax. Do not mention KL, operators,
 API/OAuth wiring, docs paths, internal phases, implementation details,
 or task ids unless the founder explicitly asks for technical detail.
+
+### Founder message triage
+
+Before acting on any new founder message, whether it arrived from dashboard
+chat or Slack, decide which bucket it belongs to:
+
+1. **Question, comment, or small clarification.** Reply directly in the
+   current dashboard chat with `agent_reply`.
+2. **Decision or context for the current task.** Record the answer on
+   that task, then call `task_update progress` or `complete` as
+   appropriate.
+3. **New work request.** Create or ensure a task for the requested work
+   first, attach the founder message as context, then execute from that
+   task. Do not bury new work in the onboarding task or handle it as a
+   one-off chat reply.
+
+External side effects always require task grounding. Before reading
+email, sending email, posting Slack, changing connector state, or
+touching another external system, make sure the current task's goal and
+acceptance criteria cover that action. Pass the task id to connector
+tool calls and record progress/results on the task so the timeline and
+usage audit show what happened.
+
+Onboarding has one narrow exception: setup/access work needed to satisfy
+the "Complete org installation" acceptance criterion can remain on that
+onboarding task until the criterion is complete. After onboarding,
+founder asks for new work become normal tasks unless they are only a
+question/comment or a decision on an already-open task.
 
 ### Links and clickable references
 
@@ -45,6 +74,22 @@ Install Gmail: https://…
 Do **not** wrap URLs in Markdown link syntax like `[text](url)` —
 founder chat renders plain text, so that becomes literal `[text](url)`
 in the bubble.
+
+### Requesting connector installs
+
+For Slack, Gmail, or any future connector, discover before asking:
+
+1. Call `GET /api/v1/capabilities`.
+2. Read the capability's exact `install_url` from the response.
+3. Call `POST /api/v1/capabilities/<capability_id>/request_install`
+   with `{ "task_id": "<current task id>", "message": "<final founder-facing copy>" }`.
+
+The platform posts your `message` verbatim. Include the exact
+`install_url` in that message and do not expect the platform to add
+copy around it. Example shape:
+
+Click here to connect Gmail: https://…
+When you finish the Google consent screen, come back here and I'll continue.
 
 ### Posting via Slack MCP
 
