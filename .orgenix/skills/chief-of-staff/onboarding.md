@@ -4,11 +4,20 @@ Use when the current task is **Complete org installation** (the onboarding task 
 
 ## Your acceptance criteria
 
-The platform sets a single acceptance criterion on your onboarding task:
+The platform sets the acceptance criterion on your onboarding task. It has **two** parts:
 
-> Either the founder has declined to set up Slack and email, or any of those they want is fully installed and reachable from this installation.
+> Both of these are true: (1) the founder has either declined to set up Slack and email or has any of those they want fully installed and reachable; and (2) you have run the discovery conversation (stage, goals, departments) after access settled and recorded it by calling `POST /api/v1/onboarding/discovery/complete`.
 
-You evaluate the criterion against your own context. Do not call `task_update transition: "complete"` until that statement is true in your honest reading of this thread.
+You evaluate the criterion against your own context. Do not call `task_update transition: "complete"` until **both** statements are true in your honest reading of this thread. In particular, do not call `complete` before discovery is recorded — discovery completion is what unblocks the founder's dashboard.
+
+This task is only for setup/access work needed to satisfy that acceptance
+criterion: capturing Slack/email preferences, requesting connector
+installs, and verifying installed capabilities. If the founder asks for
+new operational work during onboarding, create or ensure a separate task
+for that work before executing it. After onboarding is complete, all new
+founder work requests must become normal tasks; only questions,
+comments, and decisions for an already-open task stay in the current
+chat/task thread.
 
 ## First founder message
 
@@ -47,6 +56,36 @@ For each connection (Slack, email) you recommended, take the corresponding actio
 - **Founder opted out.** Acknowledge the choice in a short `agent_reply`, record it as their decision, and continue without that capability.
 
 After the founder clicks the install link, the platform wakes you again with new work on this task. Confirm by calling `GET /api/v1/capabilities` and re-issue any tool call that returned `capability_not_installed`. The relevant capability tools (for example `connector:slack/slack.dm_founder`) become available immediately.
+
+## After access settles: run discovery
+
+Once Slack/email access is settled (connected or declined), **continue in this same thread** with the discovery conversation. This is the second half of your acceptance criterion and it gates the founder's dashboard — they do not land on the dashboard until you record discovery complete.
+
+Run it per **`runbooks/06-operating-posture.md`**: gauge the founder's lifecycle stage, make the one-time planning offer, publish the ambition contract for large goals, and recommend/confirm which departments to activate. Keep it conversational — at most one soft question, skippable — never a questionnaire.
+
+When (and only when) that conversation has actually concluded — you understand the stage, goals, and the founder has confirmed (or corrected, or skipped) the recommended outcomes — record it, passing the exact canonical slugs of the departments you inferred. Keep any founder-facing labels or outcome-language mapping local while you reason.
+
+Before posting, run this department selection checklist:
+
+1. Maintain the founder-confirmed outcomes in plain English.
+2. Select the matching exact canonical slug from the allowed discovery department catalog for each confirmed outcome.
+3. Include every confirmed outcome that has a matching catalog department.
+4. Omit a confirmed outcome only when no catalog department exists for it.
+5. Do not send founder-facing labels, role titles, abbreviations, inferred synonyms, or `administration`.
+
+> `POST /api/v1/onboarding/discovery/complete` with `{ "task_id": "<this task>", "departments": ["<exact-slug-from-allowed-catalog>"] }`
+
+This is the canonical "discovery complete" signal. It stamps your department onboarding complete, clears the dashboard "finish onboarding" indicator, and unblocks the founder's dashboard. The `departments` slugs you pass are stamped as **inferred** — that is what activates their onboarding indicator on the founder's dashboard (every org is scaffolded with the same departments at install, but they stay dormant until discovery infers them). Omit `administration`; the Chief of Staff department is always active. The call is idempotent — record more departments later by calling again as needs surface. **Do not call it until the discovery conversation truly concludes** — calling it early closes discovery incorrectly, the same way completing the task early would.
+
+Before posting, self-check that every founder-confirmed department choice has an exact catalog slug in `departments`. After posting, read the JSON response: every selected slug must appear in `department_slugs_accepted` / `inferred`, and `department_slugs_rejected_unknown` must be empty. A rejected slug means your selection was not canonical; do not treat that rejected department as activated.
+
+If the founder skips or defers ("just go", "skip"), treat that as a concluded conversation with conservative defaults (per runbook 06) and record discovery complete — do not trap them in onboarding.
+
+When you invoke a connector tool as part of onboarding, include this
+task's id as `task_id` in the tool input and record material progress on
+this task. Connector calls without task grounding are rejected because
+reading email, sending email, or posting Slack must be auditable against
+the task that authorized the action.
 
 ## Reporting task progress
 
