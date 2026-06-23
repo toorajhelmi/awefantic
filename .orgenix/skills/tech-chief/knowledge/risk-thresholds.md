@@ -25,6 +25,13 @@ If a decision matches more than one row, the strictest tier wins.
 
 Override rule: a project ADR may raise the cost thresholds if the user has set a higher monthly budget envelope. The override must reference the budget ADR and not silently exceed it.
 
+Payment handling rule: chiefs never ask for raw credit card details. If a vendor
+charge is needed, first check payment-method readiness through the connected
+vendor account when the API/tool exposes it. If billing is missing or cannot be
+verified, route the founder to add payment in that vendor's UI and stop before
+purchase. Execute a charge only after explicit founder approval of the exact
+vendor, item, price, term, renewal setting, and ownership/contact details.
+
 ## 2. Irreversibility / Blast radius
 
 | Threshold | Tier | Notes |
