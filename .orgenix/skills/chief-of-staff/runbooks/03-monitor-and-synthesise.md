@@ -26,6 +26,7 @@ Loop, for each child task id you created:
 curl -sX POST -H "Authorization: Bearer $AGENTIC_ORG_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
+    "transition": "complete",
     "result": {
       "summary": "<one paragraph for the founder>",
       "children": [
@@ -35,7 +36,7 @@ curl -sX POST -H "Authorization: Bearer $AGENTIC_ORG_API_TOKEN" \
       "founder_action": null
     }
   }' \
-  $AGENTIC_ORG_API_URL/api/v1/tasks/<your-task-id>/close
+  $AGENTIC_ORG_API_URL/api/v1/tasks/<your-task-id>/update
 ```
 
 If the original source was an event, mark it `resolved` (or `converted_to_task` if a long-lived task remains open):
