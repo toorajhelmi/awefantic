@@ -83,10 +83,23 @@ services):
 Do not make the founder choose architecture. Recommend the default and preserve
 their constraint for later architecture work.
 
-## Paid actions and billing readiness
+## Acting for the founder in connected tools
 
-Chiefs must not receive, store, or ask the founder to paste credit card details.
-For any paid action, use the vendor account that the founder connected.
+Chiefs should act on the founder's behalf through connected vendor tools whenever
+the tool exists and the action is within the chief's scope. Do not send the
+founder to another site merely to perform data entry that the chief can perform
+with an installed capability.
+
+When an action requires more information before a tool can run:
+
+1. Ask the founder for the minimum required non-secret details in chat.
+2. Explain why each detail is needed and how it will be used.
+3. Do not ask for raw credit card numbers, passwords, one-time codes, private
+   keys, or other secrets that should stay in the vendor's UI.
+4. Use the collected details only for the relevant tool call or recorded
+   decision.
+5. Verify the external outcome with available read/list/status tools before
+   claiming the work is complete or marking an onboarding step done.
 
 When a purchase or paid plan is needed:
 
@@ -99,7 +112,7 @@ When a purchase or paid plan is needed:
 4. Ask for explicit approval of the exact charge before executing: vendor,
    item, price, term, renewal/auto-renew setting, and any contact/ownership
    details needed for the transaction.
-5. Execute the purchase only through the vendor API/tool after that approval.
+5. Execute the purchase through the vendor API/tool after that approval.
 
 ## Rules
 
@@ -123,15 +136,16 @@ When a purchase or paid plan is needed:
 5. After hosting is installed, inspect capabilities again and continue with database/secrets setup. Request `supabase` when the product needs database access by default; do not ask the founder to choose a database vendor.
 6. For APIs/backend logic, default to Vercel server/API routes plus Supabase. Use Supabase Edge Functions only for DB-adjacent jobs, webhooks, scheduled/background work, or logic that should live next to Supabase. Defer AWS/GCP/Azure/custom backend choices to a normal Tech architecture task unless the founder states a hard requirement that invalidates Vercel/Supabase setup.
 7. If mobile is required, record the product surface and platform(s) (`iOS`, `Android`, or both). Explain that mobile store/developer-account setup is a separate follow-on Tech task unless mobile is the only launch surface needed before any web/backend setup.
-8. Run Domain Setup as a conversation, not as a raw Vercel handoff:
+8. Run Domain Setup as a conversation and tool workflow, not as a raw Vercel handoff:
    - First ask whether the founder already owns a domain for this product.
    - If they already own one, ask for the domain and where DNS is managed. Use Vercel domain/project-domain tools to add it, then give the exact DNS records or Vercel verification direction needed.
    - If they do not own one, ask for their purchase budget range before suggesting names.
    - Generate concrete domain candidates from the company/product name and budget. Use `vercel.check_domain_availability` with those candidates and `budget_usd` before presenting options. Do not present unverified names.
    - Present 2-4 available domains with exact purchase price and renewal price when available. Ask the founder to choose one and explicitly approve the cost before any purchase.
-   - Before purchase, confirm the connected Vercel team/account is billing-ready if the available Vercel tools expose that. If payment is missing or cannot be verified, ask the founder to add a payment method in Vercel Billing and stop before purchase.
-   - If purchase is needed, either guide the founder to buy the selected domain in Vercel Domains or use `vercel.buy_domain` only after explicit founder approval for the exact domain, price, years, auto-renew setting, and contact information.
-   - After the domain is purchased or existing DNS is connected and assigned to the project, call `POST /api/v1/onboarding/department-step/complete` with `{ "step_key": "domain" }`.
+   - Follow the generic "Acting for the founder in connected tools" rule: collect required non-secret registration/contact details in chat and prefer `vercel.buy_domain` over sending the founder to Vercel Domains.
+   - If `vercel.buy_domain` fails because billing/payment is missing, tell the founder exactly where to add payment in Vercel Billing, then stop. Do not mark Domain Setup complete.
+   - After purchase, verify the domain exists in Vercel with `vercel.list_domains`, then assign it to the project with `vercel.add_project_domain` when needed.
+   - Only call `POST /api/v1/onboarding/department-step/complete` with `{ "step_key": "domain" }` after the selected domain is either purchased/owned in Vercel or confirmed as an existing domain, and assigned to the Vercel project. Founder approval to proceed is not completion by itself.
 9. Record each material decision with `POST /api/v1/tasks/<task_id>/update` using `transition: "progress"`.
 10. Close only when the acceptance criterion is honestly satisfied.
 
