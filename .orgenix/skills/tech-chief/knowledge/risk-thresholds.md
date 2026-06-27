@@ -25,12 +25,17 @@ If a decision matches more than one row, the strictest tier wins.
 
 Override rule: a project ADR may raise the cost thresholds if the user has set a higher monthly budget envelope. The override must reference the budget ADR and not silently exceed it.
 
-Payment handling rule: chiefs never ask for raw credit card details. If a vendor
+Payment handling rule: chiefs act through connected vendor tools when available.
+They may collect the minimum required non-secret transaction details in chat,
+explain why each detail is needed, and use those details only for the relevant
+tool call. Chiefs never ask for raw credit card details, passwords, one-time
+codes, private keys, or other secrets that belong in the vendor UI. If a vendor
 charge is needed, first check payment-method readiness through the connected
 vendor account when the API/tool exposes it. If billing is missing or cannot be
 verified, route the founder to add payment in that vendor's UI and stop before
 purchase. Execute a charge only after explicit founder approval of the exact
 vendor, item, price, term, renewal setting, and ownership/contact details.
+Verify the external outcome before treating the work as complete.
 
 ## 2. Irreversibility / Blast radius
 
