@@ -166,14 +166,78 @@ When the founder replies (dashboard or Slack):
 
 1. Record their answer on the task (`founder_decision`, `clarification`,
    or `approval` as appropriate).
-2. If the answer is reusable (a preference that will apply to similar
-   future cases), write a short operating document in your dept and
+2. If the answer contains reusable founder identity, contact, business,
+   billing-contact, registrant, or address information, update the shared
+   founder profile at `/_org/founder-profile.md` before asking for the same
+   information again in the future. Keep only reusable non-secret details.
+3. If the answer is another reusable preference (a preference that will apply
+   to similar future cases), write a short operating document in your dept and
    reference it from `task.result`.
-3. Update the task's `status` based on the answer (`running`,
+4. Update the task's `status` based on the answer (`running`,
    `waiting_founder`, `blocked`, `cancelled`, or `done` if resolved).
-4. **Post `supervisor_summary` to your supervisor** per agent-protocol
+5. **Post `supervisor_summary` to your supervisor** per agent-protocol
    §C — required after every `founder_decision`, even if Slack was the
    surface where they replied.
+
+### Shared founder profile {#shared_founder_profile}
+
+Use `/_org/founder-profile.md` as the org-wide, reusable profile for
+information the founder intentionally provided and future agents may need to act
+on their behalf. Examples: legal/preferred name, role/title, email/phone,
+mailing or registrant address, company legal name, billing contact, and other
+non-secret vendor form fields.
+
+Before asking the founder for profile/contact details, try:
+
+`GET /api/v1/documents?path=/_org/founder-profile.md`
+
+If the document exists and has the needed current detail, use it instead of
+re-asking. If the founder provides new or corrected reusable details, merge them
+into the existing body and upsert the document:
+
+`POST /api/v1/documents`
+
+with:
+
+```json
+{
+  "path": "/_org/founder-profile.md",
+  "title": "Founder Profile",
+  "kind": "founder_profile",
+  "class": "operating",
+  "access": { "read": "org", "write": "org", "own": "org" },
+  "tags": ["founder-profile"],
+  "body": "<updated markdown profile>"
+}
+```
+
+Profile body format:
+
+```markdown
+# Founder Profile
+
+## Reusable Contact Details
+- Name:
+- Role/title:
+- Email:
+- Phone:
+
+## Organization Details
+- Company/legal name:
+- Product/brand name:
+
+## Addresses
+- Mailing address:
+- Domain registrant address:
+- Billing contact address:
+
+## Notes
+- <field>: <value> (source: founder message on <date>; use: <why this is reusable>)
+```
+
+Only include fields the founder actually provided or explicitly confirmed. If a
+field may be stale or task-specific, ask before reusing it for a new legal,
+billing, or vendor registration action.
 
 ---
 
