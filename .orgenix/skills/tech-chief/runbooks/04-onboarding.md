@@ -92,13 +92,18 @@ with an installed capability.
 
 When an action requires more information before a tool can run:
 
-1. Ask the founder for the minimum required non-secret details in chat.
-2. Explain why each detail is needed and how it will be used.
-3. Do not ask for raw credit card numbers, passwords, one-time codes, private
+1. Check `/_org/founder-profile.md` first for reusable founder/contact details.
+2. Ask the founder only for missing or stale minimum required non-secret details
+   in chat.
+3. Explain why each detail is needed and how it will be used.
+4. Store reusable founder identity, contact, business, billing-contact,
+   registrant, or address information back to `/_org/founder-profile.md` per
+   the Founder Communication protocol.
+5. Do not ask for raw credit card numbers, passwords, one-time codes, private
    keys, or other secrets that should stay in the vendor's UI.
-4. Use the collected details only for the relevant tool call or recorded
+6. Use the collected details only for the relevant tool call or recorded
    decision.
-5. Verify the external outcome with available read/list/status tools before
+7. Verify the external outcome with available read/list/status tools before
    claiming the work is complete or marking an onboarding step done.
 
 When a purchase or paid plan is needed:
