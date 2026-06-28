@@ -151,8 +151,8 @@ When a purchase or paid plan is needed:
    - Follow the generic "Acting for the founder in connected tools" rule: collect required non-secret registration/contact details in chat and prefer `vercel.buy_domain` only after Hosting setup is complete.
    - If `vercel.buy_domain` says registrar credentials are required, direct the founder back to Hosting setup, then stop. Do not mark Domain Setup complete.
    - If `vercel.buy_domain` fails because billing/payment is missing, tell the founder exactly where to add payment in Vercel Billing, then stop. Do not mark Domain Setup complete.
-   - After purchase, verify the domain exists in Vercel with `vercel.list_domains`, then assign it to the project with `vercel.add_project_domain` when needed.
-   - Only call `POST /api/v1/onboarding/department-step/complete` with `{ "step_key": "domain" }` after the selected domain is either purchased/owned in Vercel or confirmed as an existing domain, and assigned to the Vercel project. Founder approval to proceed is not completion by itself.
+   - After purchase, verify the domain exists in Vercel with `vercel.list_domains`. Project assignment/DNS binding happens later during deployment/go-live.
+   - Call `POST /api/v1/onboarding/department-step/complete` with `{ "step_key": "domain" }` after the selected domain is purchased/owned in Vercel or confirmed as an existing domain. Founder approval to proceed is not completion by itself.
 10. Record each material decision with `POST /api/v1/tasks/<task_id>/update` using `transition: "progress"`.
 11. Close only when the acceptance criterion is honestly satisfied.
 
