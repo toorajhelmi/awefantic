@@ -4,7 +4,7 @@ Use when the current task is **Complete Tech onboarding**.
 
 ## Your acceptance criteria
 
-The platform sets the acceptance criterion on your onboarding task. It is satisfied when the founder has either connected or explicitly deferred the required Tech capabilities for hosting, database access, and secrets management, and the Tech onboarding checklist reflects those decisions.
+The platform sets the acceptance criterion on your onboarding task. It is satisfied when the founder has either connected or explicitly deferred the required Tech capabilities for hosting and database access, and the Tech onboarding checklist reflects those decisions.
 
 Do not close the task until the founder-facing setup decisions are recorded in the thread and you have verified installed capabilities with `GET /api/v1/capabilities`.
 
@@ -57,7 +57,7 @@ Those become normal tasks or later planning assumptions.
 ## Founder asks outside onboarding scope
 
 Initial Tech onboarding covers only the setup needed to start shipping:
-hosting, database, domain, secrets, and — if the founder explicitly requires it
+hosting, database, domain, and — if the founder explicitly requires it
 now — mobile developer account/app-store setup. Everything else is a normal Tech
 task after onboarding.
 
@@ -139,7 +139,7 @@ When a purchase or paid plan is needed:
 3. Send the first founder message with `POST /api/v1/messages` using `kind: "agent_reply"` and this task ID.
 4. If the founder approves hosting setup, request the `vercel` capability install. Do not duplicate Vercel account, team, billing, or token instructions in chat; direct the founder to the secure Hosting setup page returned by the install URL.
 5. Treat hosting as complete only after `GET /api/v1/capabilities` reports Vercel installed. If `vercel.buy_domain` reports missing registrar credentials, direct the founder back to Hosting setup; do not keep retrying `vercel.buy_domain`.
-6. After hosting is installed, inspect capabilities again and continue with database/secrets setup. Request `supabase` when the product needs database access by default; do not ask the founder to choose a database vendor.
+6. After hosting is installed, inspect capabilities again and continue with database setup. Request `supabase` when the product needs database access by default; do not ask the founder to choose a database vendor.
 7. For APIs/backend logic, default to Vercel server/API routes plus Supabase. Use Supabase Edge Functions only for DB-adjacent jobs, webhooks, scheduled/background work, or logic that should live next to Supabase. Defer AWS/GCP/Azure/custom backend choices to a normal Tech architecture task unless the founder states a hard requirement that invalidates Vercel/Supabase setup.
 8. If mobile is required, record the product surface and platform(s) (`iOS`, `Android`, or both). Explain that mobile store/developer-account setup is a separate follow-on Tech task unless mobile is the only launch surface needed before any web/backend setup.
 9. Run Domain Setup as a conversation and tool workflow, not as a raw Vercel handoff:
@@ -151,8 +151,8 @@ When a purchase or paid plan is needed:
    - Follow the generic "Acting for the founder in connected tools" rule: collect required non-secret registration/contact details in chat and prefer `vercel.buy_domain` only after Hosting setup is complete.
    - If `vercel.buy_domain` says registrar credentials are required, direct the founder back to Hosting setup, then stop. Do not mark Domain Setup complete.
    - If `vercel.buy_domain` fails because billing/payment is missing, tell the founder exactly where to add payment in Vercel Billing, then stop. Do not mark Domain Setup complete.
-   - After purchase, verify the domain exists in Vercel with `vercel.list_domains`, then assign it to the project with `vercel.add_project_domain` when needed.
-   - Only call `POST /api/v1/onboarding/department-step/complete` with `{ "step_key": "domain" }` after the selected domain is either purchased/owned in Vercel or confirmed as an existing domain, and assigned to the Vercel project. Founder approval to proceed is not completion by itself.
+   - After purchase, verify the domain exists in Vercel with `vercel.list_domains`. Project assignment/DNS binding happens later during deployment/go-live.
+   - Call `POST /api/v1/onboarding/department-step/complete` with `{ "step_key": "domain" }` after the selected domain is purchased/owned in Vercel or confirmed as an existing domain. Founder approval to proceed is not completion by itself.
 10. Record each material decision with `POST /api/v1/tasks/<task_id>/update` using `transition: "progress"`.
 11. Close only when the acceptance criterion is honestly satisfied.
 
@@ -165,4 +165,4 @@ Use `POST /api/v1/tasks/<task_id>/update` for lifecycle transitions:
 | You start working | `start` | `{ "transition": "start" }` |
 | You record setup progress | `progress` | `{ "transition": "progress", "note": "..." }` |
 | You cannot proceed without a real-time founder action | `block` | `{ "transition": "block", "blocker": { "needs": "Plain text describing what is needed." } }` |
-| Required setup is connected or explicitly deferred | `complete` | `{ "transition": "complete", "result": { "summary": "...", "hosting": "installed|deferred", "database": "installed|deferred|not_needed", "secrets": "installed|deferred" } }` |
+| Required setup is connected or explicitly deferred | `complete` | `{ "transition": "complete", "result": { "summary": "...", "hosting": "installed|deferred", "database": "installed|deferred|not_needed" } }` |
