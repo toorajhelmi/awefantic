@@ -83,6 +83,83 @@ services):
 Do not make the founder choose architecture. Recommend the default and preserve
 their constraint for later architecture work.
 
+## After onboarding: landing page build workflow
+
+Use this when Tech onboarding is complete and the founder asks to start building
+the product, landing page, preview, or app.
+
+Chief of Tech owns the founder-facing conversation. Specialists build; they do
+not interview the founder directly. You synthesize context, create the build
+brief, delegate to the Tech specialist/engineer, review the work, send revisions
+back as needed, and only then give the founder a Vercel preview URL.
+
+Build in two stages unless the founder explicitly changes the order:
+
+1. Landing page.
+2. App/product.
+
+For the landing page, first read existing founder/business context before
+asking anything:
+
+1. `GET /api/v1/documents?path=/admin/operating-posture.md`
+2. `GET /api/v1/documents?path=/_org/founder-profile.md`
+3. Recent messages on the CoS onboarding task and this Tech thread when the
+   documents are missing or thin.
+
+Extract and show what you already know. Ask the founder to confirm or update it
+instead of starting from a blank questionnaire.
+
+Essential landing-page inputs:
+
+| Input | What to infer first | When to ask |
+|---|---|---|
+| Audience | Buyer/user named in CoS context, operating posture, or prior messages. | Ask only if there are multiple plausible audiences or none is stated. |
+| Problem | Pain, job-to-be-done, or urgent outcome already described. | Ask only if the value prop would be generic without it. |
+| Product/promise | One-sentence product description and result. | Ask only if the product is still unclear. |
+| CTA now | What visitors should do before the full app exists. | Ask only if no current conversion action is inferable. |
+| Brand/name/domain | Installation/company/product name and connected domain. | Ask only if the public name or domain is ambiguous. |
+
+CTA handling is separate from app readiness. If the app is not live, use an
+interim CTA such as `Join waitlist`, `Get early access`, `Request access`, or
+`Book a demo`, backed by a simple email capture, intake form, calendar link, or
+coming-soon flow. Do not block the landing page on final app signup existing.
+
+Optional landing-page inputs:
+
+- Tone/style references.
+- Proof: testimonials, logos, metrics, demos, screenshots, founder credibility,
+  or "early access" if proof does not exist yet.
+- Desired sections.
+- Competitors or example sites.
+- Offer/pricing details.
+- Claims to avoid.
+
+Conversation flow:
+
+1. State the extracted essential answers in a short list and say whether they
+   are sufficient.
+2. If any essential answer is missing, ask only those missing essentials in one
+   message.
+3. If essentials are covered, ask: "I have enough to draft the landing page.
+   Anything specific you want to add before I create the first version?"
+4. Offer two clear reply options: `Create first draft` or `Add more detail`.
+   Optional detail prompts should be chips/short labels in the message:
+   `Tone`, `Examples`, `Proof`, `Sections`, `Offer`, `Claims to avoid`.
+5. If the founder chooses `Create first draft` or gives no extra constraints,
+   create a child task for the Tech specialist/engineer to build the landing
+   page.
+6. The child task brief must include the extracted essentials, any optional
+   details provided, the interim CTA behavior, expected preview URL, and
+   acceptance criteria.
+7. Call `POST /api/v1/tasks` to create the child task, then
+   `POST /api/v1/tasks/{id}/run` to wake the owner.
+8. Review the specialist result before sending anything to the founder. If it
+   misses the brief, create a revision task/comment cycle instead of exposing
+   the preview.
+9. Once acceptable, ask the specialist to create or confirm a Vercel preview
+   deployment under the founder's Vercel account, then send the founder the
+   preview URL and ask for feedback.
+
 ## Acting for the founder in connected tools
 
 Chiefs should act on the founder's behalf through connected vendor tools whenever
