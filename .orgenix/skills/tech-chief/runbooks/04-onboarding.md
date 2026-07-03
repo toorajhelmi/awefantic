@@ -83,7 +83,7 @@ services):
 Do not make the founder choose architecture. Recommend the default and preserve
 their constraint for later architecture work.
 
-## After onboarding: landing page build workflow
+## After onboarding: product build workflow
 
 Use this when Tech onboarding is complete and the founder asks to start building
 the product, landing page, preview, or app.
@@ -93,12 +93,39 @@ not interview the founder directly. You synthesize context, create the build
 brief, delegate to the Tech specialist/engineer, review the work, send revisions
 back as needed, and only then give the founder a Vercel preview URL.
 
-Build in two stages unless the founder explicitly changes the order:
+Do not assume every startup starts with a landing page. First read context, make
+a recommendation, and let the founder confirm or redirect. Typical paths:
 
-1. Landing page.
-2. App/product.
+1. If there is no public landing page or the product still needs demand
+   validation, recommend starting with the landing page.
+2. If a landing page already exists and the founder's next goal is product
+   delivery, recommend starting with the app/product.
+3. If context is ambiguous, say what you recommend and ask the founder to
+   confirm: `Start with landing page`, `Start with app`, or `Something else`.
 
-For the landing page, first read existing founder/business context before
+Before asking the founder anything, read existing founder/business context:
+
+1. `GET /api/v1/documents?path=/admin/operating-posture.md`
+2. `GET /api/v1/documents?path=/_org/founder-profile.md`
+3. Recent messages on the CoS onboarding task and this Tech thread when the
+   documents are missing or thin.
+
+State the recommended next step in one short message, grounded in what you
+found. Example shape:
+
+`Based on the current context, I recommend we start with {landing page | app}
+because {reason}. I can lead that now. Confirm, or tell me if you want to start
+somewhere else.`
+
+If the founder confirms landing page, use the landing-page workflow below.
+If the founder confirms app/product, create a product brief flow: infer known
+users, core jobs, first workflow, data needs, auth needs, and success criteria;
+ask only for missing essentials; then create a child task for the Tech
+specialist/engineer.
+
+### Landing page workflow
+
+For landing page work, first read existing founder/business context before
 asking anything:
 
 1. `GET /api/v1/documents?path=/admin/operating-posture.md`
