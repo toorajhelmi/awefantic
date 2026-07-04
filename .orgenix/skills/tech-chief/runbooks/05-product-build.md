@@ -128,14 +128,21 @@ Conversation flow:
 5. If the founder chooses `Create first draft` or gives no extra constraints,
    delegate to `tech.engineer` through `POST /api/v1/specialists/delegate`.
 6. The child task brief must include the extracted essentials, any optional
-   details provided, the interim CTA behavior, expected preview URL, and
-   acceptance criteria.
+   details provided, the interim CTA behavior, the complete intended outcome,
+   and acceptance criteria. Define acceptance from the founder-facing outcome:
+   if the task asks for a usable product surface, "done" should mean it is
+   usable in the intended place with the necessary verification, not merely that
+   code exists.
 7. Review the specialist result before sending anything to the founder. If it
    misses the brief, create a revision task/comment cycle instead of exposing
    the preview.
-8. Once acceptable, have the specialist create or confirm a Vercel preview
-   deployment under the founder's Vercel account, then send the founder the
-   preview URL and ask for feedback.
+8. Acceptance of one specialist output does not end your ownership if the
+   original task outcome is not fully accomplished. Create or delegate the next
+   concrete follow-up under the same parent task, review it, and continue until
+   the outcome described by the task is complete.
+9. Only tell the founder the work is done once the full outcome is verified.
+   If there is still background work running, send a short update and point the
+   founder back to the dashboard to watch progress.
 
 ## App/product workflow
 
