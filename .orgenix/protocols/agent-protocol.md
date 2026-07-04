@@ -241,6 +241,21 @@ other task. Decide **once** between:
   tells her to use the founder chat surface when her unblock task's AC
   is best satisfied by a founder decision — see §C.)
 
+When the blocker is genuinely human-owned and must reach the founder,
+the escalation is not complete until the founder has enough information
+to act without technical diagnosis. Include:
+
+- the exact URL or product page to open;
+- the account, project, workspace, or resource to select;
+- the button, menu, setting, or field to use;
+- the value or choice to enter, approve, or confirm;
+- what success should look like after the action;
+- what the founder must not paste into chat, especially secrets; and
+- the short confirmation they should send back when done.
+
+Do not say only "this is founder-owned", "blocked on access", or
+"please unpause/approve/connect it" without those steps.
+
 Limit yourself to **one** retry attempt per failure inside Resolve. If
 your first attempt at resolution doesn't work and the problem
 definition hasn't changed, propagate — repeated retries without a new
