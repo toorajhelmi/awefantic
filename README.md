@@ -1,0 +1,40 @@
+# Awfantic Landing + Waitlist MVP
+
+This repository contains the Awfantic public landing page and waitlist capture
+MVP. It is a small Next.js app intended for Vercel with Supabase-backed lead
+storage.
+
+## Local development
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Required environment variables:
+
+- `SUPABASE_URL` - Supabase project URL.
+- `SUPABASE_SERVICE_ROLE_KEY` - server-only key used by the `/api/waitlist`
+  route to insert submissions. Do not expose this value with a
+  `NEXT_PUBLIC_` prefix.
+
+## Supabase schema
+
+Apply the migration in `supabase/migrations/20260704040000_create_waitlist_submissions.sql`.
+It creates `public.waitlist_submissions`, enables RLS, and adds a unique index
+that prevents duplicate active waitlist rows for the same lower-cased email.
+
+## Verification
+
+```bash
+npm test
+npm run build
+```
+
+The unit tests cover:
+
+- email normalization and invalid-email rejection,
+- valid Supabase insertion payloads,
+- duplicate email handling as non-enumerating success,
+- honeypot submissions returning success without persistence.
