@@ -1,6 +1,6 @@
 {
   "bundleVersion": "0.1.0",
-  "installedAt": "2026-06-27T18:44:51.933Z",
+  "installedAt": "2026-07-04T23:29:37.711Z",
   "protocols": {
     "agentProtocol": "0.1.0",
     "founderCommunication": "0.1.0",
@@ -9,7 +9,7 @@
   "skills": {
     "chief-of-staff": {
       "source": "orgenix/chief-of-staff-cursor",
-      "version": "0.1.0+6a7e1ada0712",
+      "version": "0.1.0+247fa4c120a4",
       "sourceVersion": "0.1.0"
     }
   }
