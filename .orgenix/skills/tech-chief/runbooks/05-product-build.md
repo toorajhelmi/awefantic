@@ -140,7 +140,13 @@ Conversation flow:
    original task outcome is not fully accomplished. Create or delegate the next
    concrete follow-up under the same parent task, review it, and continue until
    the outcome described by the task is complete.
-9. Only tell the founder the work is done once the full outcome is verified.
+9. If delivery is blocked by infrastructure, access, configuration, paused
+   services, deployment setup, or connected accounts, first use the installed
+   connectors/tools and delegated agents to diagnose and resolve it. Assume the
+   founder is nontechnical. Ask the founder only for a genuinely human-owned
+   approval, billing/account action, or secure secret entry, and phrase it as a
+   secure dashboard/vault action rather than a technical troubleshooting step.
+10. Only tell the founder the work is done once the full outcome is verified.
    If there is still background work running, send a short update and point the
    founder back to the dashboard to watch progress.
 
