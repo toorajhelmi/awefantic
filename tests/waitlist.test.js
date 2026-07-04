@@ -19,6 +19,24 @@ test("normalizes email and validates required fields", () => {
   assert.equal(invalid.errors.email, "Enter a valid email address to join the waitlist.");
 });
 
+test("invalid email does not attempt persistence", async () => {
+  const supabase = createSupabaseMock({});
+
+  const result = await createWaitlistSubmission(
+    {
+      email: "not-an-email",
+      qualifyingAnswer: "I want to validate onboarding.",
+      sourcePath: "/",
+    },
+    { supabase },
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.stored, false);
+  assert.equal(result.reason, "validation");
+  assert.equal(supabase.calls.length, 0);
+});
+
 test("valid submission inserts one normalized row in Supabase", async () => {
   const supabase = createSupabaseMock({
     data: { id: "sub_123", email: "founder@example.com", status: "active" },
