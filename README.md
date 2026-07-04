@@ -37,4 +37,18 @@ The unit tests cover:
 - email normalization and invalid-email rejection,
 - valid Supabase insertion payloads,
 - duplicate email handling as non-enumerating success,
-- honeypot submissions returning success without persistence.
+- honeypot submissions returning success without persistence,
+- server-side waitlist rate-limit blocking,
+- first-party landing analytics event recording.
+
+## Analytics and anti-spam
+
+The app records a basic first-party funnel signal in Supabase:
+
+- `page_view` when the landing page loads,
+- `waitlist_submission_success` after a new waitlist submission is stored.
+
+`POST /api/waitlist` also enforces a server-side throttle of 5 successful
+submissions per hashed IP per hour, falling back to hashed user-agent when an IP
+hash is unavailable. See `docs/analytics-and-anti-spam.md` for the Supabase
+query, limits, and revisit triggers.

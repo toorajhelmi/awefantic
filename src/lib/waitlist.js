@@ -3,6 +3,14 @@ export const SUCCESS_MESSAGE =
 
 export const INVALID_EMAIL_MESSAGE = "Enter a valid email address to join the waitlist.";
 
+export const RATE_LIMIT_MESSAGE =
+  "Too many waitlist requests from this network. Please try again later.";
+
+export const WAITLIST_RATE_LIMIT = {
+  maxSubmissions: 5,
+  windowMs: 60 * 60 * 1000,
+};
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DUPLICATE_ERROR_CODES = new Set(["23505", "409"]);
 
@@ -66,6 +74,24 @@ export async function createWaitlistSubmission(input, options = {}) {
   }
 
   const metadata = options.metadata || {};
+  const rateLimit = await checkWaitlistRateLimit({
+    supabase: options.supabase,
+    metadata,
+    now: options.now,
+    maxSubmissions: options.maxSubmissions,
+    windowMs: options.windowMs,
+  });
+
+  if (rateLimit.limited) {
+    return {
+      ok: false,
+      stored: false,
+      reason: "rate_limited",
+      publicMessage: RATE_LIMIT_MESSAGE,
+      retryAfterSeconds: rateLimit.retryAfterSeconds,
+    };
+  }
+
   const row = {
     email: validation.values.email,
     qualifying_answer: validation.values.qualifyingAnswer,
@@ -103,12 +129,46 @@ export async function createWaitlistSubmission(input, options = {}) {
   };
 }
 
+export async function checkWaitlistRateLimit(options = {}) {
+  const limitKey = getRateLimitKey(options.metadata);
+
+  if (!limitKey) {
+    return {
+      limited: false,
+      reason: "missing_request_fingerprint",
+    };
+  }
+
+  const windowMs = options.windowMs || WAITLIST_RATE_LIMIT.windowMs;
+  const maxSubmissions = options.maxSubmissions || WAITLIST_RATE_LIMIT.maxSubmissions;
+  const now = options.now instanceof Date ? options.now.getTime() : options.now || Date.now();
+  const since = new Date(now - windowMs).toISOString();
+
+  const { count, error } = await options.supabase
+    .from("waitlist_submissions")
+    .select("id", { count: "exact", head: true })
+    .eq(limitKey.column, limitKey.value)
+    .gte("created_at", since);
+
+  if (error) {
+    throw new Error(`Failed to check waitlist rate limit: ${error.message || error.code}`);
+  }
+
+  return {
+    limited: Number(count || 0) >= maxSubmissions,
+    count: Number(count || 0),
+    limit: maxSubmissions,
+    keyType: limitKey.type,
+    retryAfterSeconds: Math.ceil(windowMs / 1000),
+  };
+}
+
 export function isDuplicateEmailError(error = {}) {
   const message = String(error.message || "").toLowerCase();
   return DUPLICATE_ERROR_CODES.has(String(error.code || "")) || message.includes("duplicate");
 }
 
-function sanitizeSourcePath(sourcePath) {
+export function sanitizeSourcePath(sourcePath) {
   const value = String(sourcePath || "/").trim();
 
   if (!value.startsWith("/")) {
@@ -116,4 +176,24 @@ function sanitizeSourcePath(sourcePath) {
   }
 
   return value.slice(0, 256);
+}
+
+function getRateLimitKey(metadata = {}) {
+  if (metadata.ipHash) {
+    return {
+      column: "ip_hash",
+      value: metadata.ipHash,
+      type: "ip_hash",
+    };
+  }
+
+  if (metadata.userAgentHash) {
+    return {
+      column: "user_agent_hash",
+      value: metadata.userAgentHash,
+      type: "user_agent_hash",
+    };
+  }
+
+  return null;
 }

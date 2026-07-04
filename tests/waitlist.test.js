@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  RATE_LIMIT_MESSAGE,
+  checkWaitlistRateLimit,
   createWaitlistSubmission,
   normalizeEmail,
   validateWaitlistInput,
@@ -112,13 +114,76 @@ test("honeypot submission returns success shape without persistence", async () =
   assert.equal(supabase.calls.length, 0);
 });
 
-function createSupabaseMock({ data = null, error = null }) {
+test("waitlist rate limit blocks new storage for saturated request fingerprint", async () => {
+  const supabase = createSupabaseMock({ count: 5 });
+
+  const result = await createWaitlistSubmission(
+    {
+      email: "founder@example.com",
+      qualifyingAnswer: "I want to validate onboarding.",
+      sourcePath: "/",
+    },
+    {
+      supabase,
+      metadata: { ipHash: "ip_hash" },
+      now: new Date("2026-07-04T04:37:00.000Z"),
+    },
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.stored, false);
+  assert.equal(result.reason, "rate_limited");
+  assert.equal(result.publicMessage, RATE_LIMIT_MESSAGE);
+  assert.equal(result.retryAfterSeconds, 3600);
+  assert.equal(supabase.calls.length, 0);
+  assert.deepEqual(supabase.rateLimitCalls[0], {
+    table: "waitlist_submissions",
+    column: "ip_hash",
+    value: "ip_hash",
+    since: "2026-07-04T03:37:00.000Z",
+  });
+});
+
+test("waitlist rate limit falls back to user-agent hash when IP hash is unavailable", async () => {
+  const supabase = createSupabaseMock({ count: 0 });
+
+  const result = await checkWaitlistRateLimit({
+    supabase,
+    metadata: { userAgentHash: "ua_hash" },
+    now: new Date("2026-07-04T04:37:00.000Z"),
+  });
+
+  assert.equal(result.limited, false);
+  assert.equal(result.keyType, "user_agent_hash");
+  assert.deepEqual(supabase.rateLimitCalls[0], {
+    table: "waitlist_submissions",
+    column: "user_agent_hash",
+    value: "ua_hash",
+    since: "2026-07-04T03:37:00.000Z",
+  });
+});
+
+function createSupabaseMock({ data = null, error = null, count = 0, countError = null }) {
   const calls = [];
+  const rateLimitCalls = [];
 
   return {
     calls,
+    rateLimitCalls,
     from(table) {
       return {
+        select() {
+          return {
+            eq(column, value) {
+              return {
+                async gte(_column, since) {
+                  rateLimitCalls.push({ table, column, value, since });
+                  return { count, error: countError };
+                },
+              };
+            },
+          };
+        },
         insert(row) {
           calls.push({ table, row });
           return {

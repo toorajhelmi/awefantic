@@ -1,3 +1,4 @@
+import AnalyticsPageView from "./analytics-page-view";
 import WaitlistForm from "./waitlist-form";
 
 const pillars = [
@@ -18,6 +19,7 @@ const pillars = [
 export default function HomePage() {
   return (
     <main>
+      <AnalyticsPageView />
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">Awfantic early access</p>

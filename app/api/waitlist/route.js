@@ -1,7 +1,11 @@
-import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "../../../src/lib/supabase-admin.js";
+import {
+  LANDING_ANALYTICS_EVENTS,
+  recordLandingAnalyticsEvent,
+} from "../../../src/lib/analytics.js";
+import { getRequestMetadata } from "../../../src/lib/request-metadata.js";
 import {
   createWaitlistSubmission,
   SUCCESS_MESSAGE,
@@ -22,16 +26,35 @@ export async function POST(request) {
   }
 
   try {
+    const supabase = getSupabaseAdmin();
+    const metadata = getRequestMetadata(request);
     const result = await createWaitlistSubmission(payload, {
-      supabase: getSupabaseAdmin(),
-      metadata: getRequestMetadata(request),
+      supabase,
+      metadata,
     });
 
     if (!result.ok) {
+      const status = result.reason === "rate_limited" ? 429 : 400;
+      const headers = result.retryAfterSeconds
+        ? { "Retry-After": String(result.retryAfterSeconds) }
+        : undefined;
+
       return NextResponse.json(
         { ok: false, message: result.publicMessage, errors: result.errors },
-        { status: 400 },
+        { status, headers },
       );
+    }
+
+    if (result.stored) {
+      try {
+        await recordLandingAnalyticsEvent(LANDING_ANALYTICS_EVENTS.waitlistSubmissionSuccess, {
+          supabase,
+          metadata,
+          sourcePath: payload?.sourcePath,
+        });
+      } catch (error) {
+        console.error("Failed to record waitlist submission analytics.", error);
+      }
     }
 
     return NextResponse.json({ ok: true, message: SUCCESS_MESSAGE }, { status: 200 });
@@ -45,24 +68,4 @@ export async function POST(request) {
       { status: 503 },
     );
   }
-}
-
-function getRequestMetadata(request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const realIp = request.headers.get("x-real-ip");
-  const userAgent = request.headers.get("user-agent");
-  const ip = forwardedFor?.split(",")[0]?.trim() || realIp || "";
-
-  return {
-    ipHash: hashValue(ip),
-    userAgentHash: hashValue(userAgent || ""),
-  };
-}
-
-function hashValue(value) {
-  if (!value) {
-    return null;
-  }
-
-  return createHash("sha256").update(value).digest("hex").slice(0, 64);
 }

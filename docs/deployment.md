@@ -5,6 +5,8 @@
 - Hosting: Vercel.
 - Domain: `awfantic.com` once the Vercel project is connected.
 - Database: Supabase Postgres via the server-side `/api/waitlist` route.
+- Analytics: first-party Supabase events via `/api/analytics/page-view` and
+  successful `/api/waitlist` submissions.
 
 ## Required Vercel environment variables
 
@@ -32,6 +34,14 @@ The migration:
 3. Enforces one active waitlist row per lower-cased email.
 4. Enables RLS so browser clients cannot read or write rows directly.
 
+Also run:
+
+`supabase/migrations/20260704043700_create_landing_analytics_events.sql`
+
+This migration creates `public.landing_analytics_events` for the basic
+`page_view` vs `waitlist_submission_success` signal documented in
+`docs/analytics-and-anti-spam.md`.
+
 ## Expected behavior
 
 - Valid submissions insert one active row.
@@ -40,6 +50,9 @@ The migration:
   but do not insert a normal waitlist row.
 - Duplicate email submissions receive success copy and rely on the unique index
   to avoid duplicate active rows.
+- Waitlist submissions are rate-limited server-side to 5 successful
+  submissions per hashed IP per hour, with hashed user-agent as the fallback
+  fingerprint when an IP hash is unavailable.
 - If required Supabase env vars are missing, the API returns a temporary
   unavailable response instead of accepting data that cannot be persisted.
 
