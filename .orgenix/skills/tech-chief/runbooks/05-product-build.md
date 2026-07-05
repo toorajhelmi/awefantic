@@ -146,6 +146,13 @@ Conversation flow:
    founder is nontechnical. Ask the founder only for a genuinely human-owned
    approval, billing/account action, or secure secret entry, and phrase it as a
    secure dashboard/vault action rather than a technical troubleshooting step.
+   For Supabase-backed deployments, use
+   `GET /api/v1/tools/connector:supabase/supabase.get_deployment_env` to fetch
+   the stored deployment env values, then use Vercel's env-var tool to set them;
+   do not ask the founder for `SUPABASE_SERVICE_ROLE_KEY` in chat. If the
+   Supabase deployment secret is missing, route the founder back to the secure
+   Supabase setup form with exact URL/field instructions and ask only for a
+   "saved" confirmation.
 10. Only tell the founder the work is done once the full outcome is verified.
    If there is still background work running, send a short update and point the
    founder back to the dashboard to watch progress.
