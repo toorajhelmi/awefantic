@@ -4,7 +4,7 @@ Use when the current task is **Complete Tech onboarding**.
 
 ## Your acceptance criteria
 
-The platform sets the acceptance criterion on your onboarding task. It is satisfied when the founder has either connected or explicitly deferred the required Tech capabilities for hosting and database access, and the Tech onboarding checklist reflects those decisions.
+The platform sets the acceptance criterion on your onboarding task. It is satisfied when the founder has either connected or explicitly deferred the required Tech capabilities for hosting, database access, server-side database deployment secrets, and secrets management, and the Tech onboarding checklist reflects those decisions.
 
 Do not close the task until the founder-facing setup decisions are recorded in the thread and you have verified installed capabilities with `GET /api/v1/capabilities`.
 
@@ -139,7 +139,7 @@ When a purchase or paid plan is needed:
 3. Send the first founder message with `POST /api/v1/messages` using `kind: "agent_reply"` and this task ID.
 4. If the founder approves hosting setup, request the `vercel` capability install. Do not duplicate Vercel account, team, billing, or token instructions in chat; direct the founder to the secure Hosting setup page returned by the install URL.
 5. Treat hosting as complete only after `GET /api/v1/capabilities` reports Vercel installed. If `vercel.buy_domain` reports missing registrar credentials, direct the founder back to Hosting setup; do not keep retrying `vercel.buy_domain`.
-6. After hosting is installed, inspect capabilities again and continue with database setup. Request `supabase` when the product needs database access by default; do not ask the founder to choose a database vendor.
+6. After hosting is installed, inspect capabilities again and continue with database setup. Request `supabase` when the product needs database access by default; do not ask the founder to choose a database vendor. The secure Supabase setup must capture the access token, project reference, and secret/service-role key needed for later server-side deployment env vars. Do not mark Database Setup done if the connector is missing that deployment secret.
 7. For APIs/backend logic, default to Vercel server/API routes plus Supabase. Use Supabase Edge Functions only for DB-adjacent jobs, webhooks, scheduled/background work, or logic that should live next to Supabase. Defer AWS/GCP/Azure/custom backend choices to a normal Tech architecture task unless the founder states a hard requirement that invalidates Vercel/Supabase setup.
 8. If mobile is required, record the product surface and platform(s) (`iOS`, `Android`, or both). Explain that mobile store/developer-account setup is a separate follow-on Tech task unless mobile is the only launch surface needed before any web/backend setup.
 9. Run Domain Setup as a conversation and tool workflow, not as a raw Vercel handoff:
@@ -155,6 +155,19 @@ When a purchase or paid plan is needed:
    - Call `POST /api/v1/onboarding/department-step/complete` with `{ "step_key": "domain" }` after the selected domain is purchased/owned in Vercel or confirmed as an existing domain. Founder approval to proceed is not completion by itself.
 10. Record each material decision with `POST /api/v1/tasks/<task_id>/update` using `transition: "progress"`.
 11. Close only when the acceptance criterion is honestly satisfied.
+
+## Deployment secrets after setup
+
+When later deployment work needs Supabase runtime environment variables:
+
+1. Use `GET /api/v1/tools/connector:supabase/supabase.get_deployment_env` with this task id or the active deployment task id. It returns `SUPABASE_URL` and the stored `SUPABASE_SERVICE_ROLE_KEY` for server-side env configuration.
+2. Use `POST /api/v1/tools/connector:vercel/vercel.set_env_var` to add those values to the target Vercel project as encrypted/server-side env vars. Do not print or summarize the secret value in chat, task results, or logs.
+3. If `supabase.get_deployment_env` says the secret is missing, this is incomplete setup. Send the founder back to the secure Supabase setup form and give exact steps:
+   - Open the Orgenix Supabase setup link returned by `GET /api/v1/capabilities` or `/api/connectors/supabase/install`.
+   - In Supabase, open `https://supabase.com/dashboard/project/<project-ref>/settings/api`.
+   - Under Project API keys, reveal/copy the secret or service_role key.
+   - Paste it only into the Orgenix Supabase setup form field named "Supabase Secret / Service Role Key".
+   - Confirm in chat only that the form was saved; never paste the key in chat.
 
 ## Reporting task progress
 
