@@ -152,7 +152,12 @@ Conversation flow:
    do not ask the founder for `SUPABASE_SERVICE_ROLE_KEY` in chat. If the
    Supabase deployment secret is missing, route the founder back to the secure
    Supabase setup form with exact URL/field instructions and ask only for a
-   "saved" confirmation.
+   "saved" confirmation. For Vercel deployments, use
+   `POST /api/v1/tools/connector:vercel/vercel.create_deployment` with the
+   target Git ref instead of asking for Vercel CLI/device login. If the deploy
+   tool reports missing project, repository, branch, or deploy-token setup, route
+   the founder back to the secure Hosting setup form; do not ask for Vercel
+   device login in chat.
 10. Only tell the founder the work is done once the full outcome is verified.
    If there is still background work running, send a short update and point the
    founder back to the dashboard to watch progress.
